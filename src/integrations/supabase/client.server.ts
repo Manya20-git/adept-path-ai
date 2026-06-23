@@ -16,7 +16,12 @@ function createSupabaseAdminClient() {
     ];
     const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
     console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    // Return a dummy proxy instead of throwing, so the serverless function does not crash on initialization.
+    return new Proxy({} as any, {
+      get() {
+        return () => Promise.reject(new Error(message));
+      }
+    });
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
