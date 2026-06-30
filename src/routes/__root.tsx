@@ -116,6 +116,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -125,6 +126,7 @@ function RootComponent() {
       <ThemeProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        <Toaster richColors position="top-right" />
       </ThemeProvider>
     </QueryClientProvider>
   );

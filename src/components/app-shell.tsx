@@ -16,7 +16,6 @@ import {
   Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type Item = { to: string; label: string; icon: typeof User; roles?: AppRole[] };
@@ -62,15 +61,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [user]);
 
   async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/logout" });
   }
 
   const items = NAV.filter((i) => !i.roles || (role && i.roles.includes(role)));
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <Toaster richColors position="top-right" />
       {/* Sidebar (desktop) */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col border-r bg-card">
         <div className="p-5 border-b">
