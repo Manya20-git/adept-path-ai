@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -637,6 +638,15 @@ function ContactForm() {
 }
 
 function Landing() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [user, navigate]);
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Nav />
