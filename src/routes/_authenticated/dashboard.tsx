@@ -63,10 +63,12 @@ function Dashboard() {
           { label: "Active Listings", value: stats.jobs, to: "/jobs", icon: Briefcase },
           { label: "Applicants", value: stats.applicants, to: "/applications", icon: Users },
           { label: "Interviews", value: stats.interviews ?? 0, to: "/interviews", icon: CalendarDays },
+          { label: "Resumes", value: "→", to: "/resume", icon: FileText },
         ]
       : [
           { label: "Total Jobs", value: stats.jobs, to: "/jobs", icon: Briefcase },
           { label: "Applications", value: stats.applications, to: "/applications", icon: ClipboardList },
+          { label: "Resumes", value: "→", to: "/resume", icon: FileText },
           { label: "Analytics", value: "→", to: "/analytics", icon: TrendingUp },
         ];
 

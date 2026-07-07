@@ -34,10 +34,12 @@ type Resume = {
   extracted_skills: string[] | null;
   analyzed_at: string | null;
   created_at: string;
+  user_id: string;
+  profiles?: { full_name: string | null; email: string } | null;
 };
 
 function ResumePage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [list, setList] = useState<Resume[]>([]);
   const [uploading, setUploading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
@@ -46,15 +48,26 @@ function ResumePage() {
   const analyze = useServerFn(analyzeResume);
 
   async function load() {
-    if (!user) return;
-    const { data } = await supabase
-      .from("resumes")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setList((data as Resume[]) ?? []);
+    if (!user || !role) return;
+    
+    let qb = supabase.from("resumes").select("*").order("created_at", { ascending: false });
+    if (role === "student") {
+      qb = qb.eq("user_id", user.id);
+    }
+    
+    const { data } = await qb;
+    const baseRows = (data as Resume[]) ?? [];
+    
+    let profMap: Record<string, { full_name: string | null; email: string }> = {};
+    if (baseRows.length && role !== "student") {
+      const ids = Array.from(new Set(baseRows.map((r) => r.user_id)));
+      const { data: profs } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
+      profMap = Object.fromEntries((profs ?? []).map((p) => [p.id, { full_name: p.full_name, email: p.email }]));
+    }
+    
+    setList(baseRows.map((r) => ({ ...r, profiles: profMap[r.user_id] ?? null })));
   }
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, role]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -116,19 +129,21 @@ function ResumePage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-display font-bold">Resume & AI analysis</h1>
-        <p className="text-muted-foreground">Upload your resume and get AI-powered feedback.</p>
+        <h1 className="text-3xl font-display font-bold">{role === "student" ? "Resume & AI analysis" : "All Resumes"}</h1>
+        <p className="text-muted-foreground">{role === "student" ? "Upload your resume and get AI-powered feedback." : "View resumes uploaded by all users."}</p>
       </div>
 
-      <Card className="p-6">
-        <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer hover:bg-accent/5 text-center">
-          <Upload className="size-8 text-muted-foreground mb-2" />
-          <span className="font-medium">Click to upload PDF / DOCX</span>
-          <span className="text-xs text-muted-foreground mt-1">Stored privately in your account</span>
-          <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleUpload} disabled={uploading} />
-        </label>
-        {uploading && <p className="text-sm text-muted-foreground mt-2">Uploading…</p>}
-      </Card>
+      {role === "student" && (
+        <Card className="p-6">
+          <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer hover:bg-accent/5 text-center">
+            <Upload className="size-8 text-muted-foreground mb-2" />
+            <span className="font-medium">Click to upload PDF / DOCX</span>
+            <span className="text-xs text-muted-foreground mt-1">Stored privately in your account</span>
+            <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleUpload} disabled={uploading} />
+          </label>
+          {uploading && <p className="text-sm text-muted-foreground mt-2">Uploading…</p>}
+        </Card>
+      )}
 
       <div className="space-y-4">
         {list.map((r) => (
@@ -138,7 +153,12 @@ function ResumePage() {
                 <FileText className="size-5 text-primary mt-1" />
                 <div>
                   <div className="font-semibold">{r.file_name}</div>
-                  <div className="text-xs text-muted-foreground">
+                  {role !== "student" && r.profiles && (
+                    <div className="text-sm font-medium mt-0.5">
+                      Uploaded by: {r.profiles.full_name ?? r.profiles.email}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     Uploaded {new Date(r.created_at).toLocaleDateString()}
                     {r.analyzed_at && ` · Analyzed ${new Date(r.analyzed_at).toLocaleDateString()}`}
                   </div>
