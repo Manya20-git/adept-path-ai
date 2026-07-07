@@ -11,6 +11,14 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Upload, Sparkles, Trash2, FileText, Loader2 } from "lucide-react";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Eye } from "lucide-react";
+
 export const Route = createFileRoute("/_authenticated/resume")({
   component: ResumePage,
 });
@@ -33,6 +41,8 @@ function ResumePage() {
   const [list, setList] = useState<Resume[]>([]);
   const [uploading, setUploading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [viewName, setViewName] = useState<string>("");
   const analyze = useServerFn(analyzeResume);
 
   async function load() {
@@ -93,6 +103,16 @@ function ResumePage() {
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
   }
 
+  async function view(r: Resume) {
+    const { data } = await supabase.storage.from("resumes").createSignedUrl(r.file_path, 3600);
+    if (data?.signedUrl) {
+      setViewUrl(data.signedUrl);
+      setViewName(r.file_name);
+    } else {
+      toast.error("Could not load resume preview");
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
@@ -125,6 +145,9 @@ function ResumePage() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => view(r)}>
+                  <Eye className="size-4 mr-1" /> View
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => download(r)}>Download</Button>
                 <Button size="sm" onClick={() => runAnalysis(r.id)} disabled={analyzingId === r.id}>
                   {analyzingId === r.id ? <Loader2 className="animate-spin" /> : <Sparkles />}
@@ -164,6 +187,23 @@ function ResumePage() {
           <Card className="p-8 text-center text-muted-foreground">No resumes yet.</Card>
         )}
       </div>
+
+      <Dialog open={!!viewUrl} onOpenChange={(open) => !open && setViewUrl(null)}>
+        <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{viewName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 w-full bg-muted/30 rounded-md overflow-hidden relative">
+            {viewUrl && (
+              <iframe 
+                src={viewName.toLowerCase().endsWith('.pdf') ? viewUrl : `https://docs.google.com/gview?url=${encodeURIComponent(viewUrl)}&embedded=true`} 
+                className="w-full h-full border-0" 
+                title="Resume Preview"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
